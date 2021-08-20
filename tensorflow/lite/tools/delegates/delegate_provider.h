@@ -157,9 +157,6 @@ class ProvidedDelegateList {
     return CreateAllRankedDelegates(*params_);
   }
 
-  // Returns the count of referenced delegates in providers_ variable
-  const int GetCount();
-
  private:
   const DelegateProviderList& providers_;
 

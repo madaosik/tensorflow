@@ -25,7 +25,26 @@ set(SCHEMA_GENERATED_FILE ${SCHEMA_GENERATED_PATH}/schema_generated.h)
 
 # Use the util function in flatbuffer to generate the schema header.
 include(BuildFlatBuffers)
-set(FLATBUFFERS_FLATC_EXECUTABLE ${CMAKE_BINARY_DIR}/flatbuffers-flatc/bin/flatc)
+
+# For cross-compilation purposes a natively compiled 'flatc' compiler is required
+if(${CMAKE_CROSSCOMPILING})
+  set(FLATC_PATHS
+      ${TFLITE_HOST_TOOLS_DIR}
+      ${TFLITE_HOST_TOOLS_DIR}/bin
+      ${TFLITE_HOST_TOOLS_DIR}/flatbuffers-flatc/bin
+      )
+  find_program(FLATC_BIN flatc PATHS ${FLATC_PATHS})
+  if(${FLATC_BIN} STREQUAL "FLATC_BIN-NOTFOUND")
+    message(FATAL_ERROR "Natively compiled 'flatc' compiler has not been found in the following\
+    locations: ${FLATC_PATHS}")
+  else()
+    message(STATUS "Pre-built 'flatc' compiler for cross-compilation purposes found: ${FLATC_BIN}")
+    set(FLATBUFFERS_FLATC_EXECUTABLE ${FLATC_BIN})
+  endif()
+else()
+  set(FLATBUFFERS_FLATC_EXECUTABLE ${CMAKE_BINARY_DIR}/flatbuffers-flatc/bin/flatc)
+endif()
+
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
   -c
   --gen-object-api
@@ -42,20 +61,18 @@ build_flatbuffers(
 )
 
 set(DELEGATE_PROVIDERS_SUPP
-  ${TFLITE_SOURCE_DIR}/nnapi/sl/SupportLibrary.cc
-  ${TFLITE_SOURCE_DIR}/tools/evaluation/utils.cc
-  ${TFLITE_SOURCE_DIR}/tools/delegates/delegate_provider.cc
   ${TFLITE_SOURCE_DIR}/delegates/external/external_delegate.cc
+  ${TFLITE_SOURCE_DIR}/nnapi/sl/SupportLibrary.cc
+  ${TFLITE_SOURCE_DIR}/tools/delegates/delegate_provider.cc
+  ${TFLITE_SOURCE_DIR}/tools/evaluation/utils.cc
 )
 
 set(DELEGATE_PROVIDERS
   ${DELEGATE_PROVIDERS_SUPP}
-  ${TFLITE_SOURCE_DIR}/tools/delegates/gpu_delegate_provider.cc
-  ${TFLITE_SOURCE_DIR}/tools/delegates/coreml_delegate_provider.cc
   ${TFLITE_SOURCE_DIR}/tools/delegates/default_execution_provider.cc
+  # List of delegates referenced as options in the tensorflow/lite/CMakeLists.txt
+  ${TFLITE_SOURCE_DIR}/tools/delegates/gpu_delegate_provider.cc
   ${TFLITE_SOURCE_DIR}/tools/delegates/nnapi_delegate_provider.cc
-  ${TFLITE_SOURCE_DIR}/tools/delegates/external_delegate_provider.cc
-  ${TFLITE_SOURCE_DIR}/tools/delegates/hexagon_delegate_provider.cc
   ${TFLITE_SOURCE_DIR}/tools/delegates/xnnpack_delegate_provider.cc
 )
 
